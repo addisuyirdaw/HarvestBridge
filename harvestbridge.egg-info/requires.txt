@@ -1,0 +1,6 @@
+groq>=1.4.0
+openai>=2.39.0
+pandas>=3.0.3
+python-dotenv>=1.2.2
+sqlite3-api>=2.0.4
+twilio>=9.10.9

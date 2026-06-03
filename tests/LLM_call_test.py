@@ -1,25 +1,25 @@
 import os
-from groq import Groq
+
+import pytest
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
 
-# Initialize the client (it automatically picks up GROQ_API_KEY from your system environment)
-# If you don't have .env loading set up yet, you can temporarily do: Client(api_key="your_actual_key_here")
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+def test_groq_connection():
+    load_dotenv(override=True)
+    api_key = os.getenv("GROQ_API_KEY")
 
-try:
+    if not api_key:
+        pytest.skip("GROQ_API_KEY is not set")
+
+    from groq import Groq
+
+    client = Groq(api_key=api_key)
     completion = client.chat.completions.create(
         model="Llama-3.3-70B-Versatile",
-        messages=[
-            {
-                "role": "user",
-                "content": "Say 'Groq connection successful!' if you can read this."
-            }
-        ],
+        messages=[{"role": "user", "content": "Say 'Groq connection successful!' if you can read this."}],
+        max_tokens=32,
     )
-    print("\n--- RESPONSE FROM GROQ ---")
-    print(completion.choices[0].message.content)
-    print("---------------------------\n")
-except Exception as e:
-    print(f"An error occurred: {e}")
+
+    assert completion.choices
+    assert isinstance(completion.choices[0].message.content, str)
+    assert completion.choices[0].message.content.strip()
