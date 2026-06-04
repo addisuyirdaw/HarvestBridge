@@ -1,10 +1,13 @@
 import os
+from dotenv import load_dotenv
 
 import pandas as pd
 import requests
 import streamlit as st
 
 import main
+
+load_dotenv(override=True)
 
 st.set_page_config(page_title="HarvestBridge Dashboard", page_icon="🌾", layout="wide")
 
@@ -54,19 +57,36 @@ with st.sidebar:
 
     st.markdown("---")
     st.caption("Tip: Use the live backend metrics panel to review market data, weather risk, and guardrail status before dispatch.")
+    st.caption(
+        "Backend endpoint is configurable via HARVESTBRIDGE_BACKEND_URL. "
+        "If this app is deployed remotely, do not rely on localhost."
+    )
 
 col1, col2 = st.columns([1.1, 1.2])
 
 location_name, location_coordinates, weather_condition = get_mock_location_and_weather(country, crop)
+backend_url = os.getenv("HARVESTBRIDGE_BACKEND_URL", "").strip()
+backend_config_warning = None
+if not backend_url:
+    backend_url = "http://127.0.0.1:8001"
+    backend_config_warning = (
+        "HARVESTBRIDGE_BACKEND_URL is not configured. "
+        "Using localhost fallback for local development only. "
+        "If this dashboard is deployed remotely, set HARVESTBRIDGE_BACKEND_URL to a public backend URL."
+    )
 backend_recommendation = None
 backend_data = None
 backend_error = None
 market = None
 weather = None
 guardrails = None
+backend_display_url = backend_url
 
 with col1:
     st.subheader("Live Backend Metrics")
+    st.caption(f"Backend URL: {backend_display_url}")
+    if backend_config_warning:
+        st.warning(backend_config_warning)
     if not run:
         st.info("Select your inputs in the sidebar and click the action button to generate a live recommendation.")
     else:
@@ -83,8 +103,9 @@ with col1:
                 "market_status": "active_feed",
             }
             try:
+                endpoint = backend_url.rstrip("/") + "/whatsapp-webhook"
                 response = requests.post(
-                    "http://127.0.0.1:8001/whatsapp-webhook",
+                    endpoint,
                     json=payload,
                     timeout=5,
                 )
@@ -115,7 +136,12 @@ with col1:
                 guardrails["forced_action"] = None
 
         if backend_error:
-            st.error("Unable to reach the HarvestBridge backend. Start the FastAPI server at http://127.0.0.1:8001 and retry.")
+            st.error(
+                "Unable to reach the HarvestBridge backend. "
+                f"Configured backend URL: {backend_url}. "
+                "If this app is deployed remotely, localhost is not reachable from the cloud. "
+                "Set HARVESTBRIDGE_BACKEND_URL to a publicly accessible FastAPI endpoint or run both services on the same machine."
+            )
             st.markdown(f"**Details:** {backend_error}")
         else:
             st.success("HarvestBridge backend returned a recommendation.")
