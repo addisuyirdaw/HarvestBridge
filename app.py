@@ -1,5 +1,5 @@
 import os
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 
 import pandas as pd
 import requests
@@ -7,7 +7,11 @@ import streamlit as st
 
 import main
 
-load_dotenv(override=True)
+# Load environment variables from .env in the repo root if present.
+dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
+if not os.path.exists(dotenv_path):
+    dotenv_path = find_dotenv(usecwd=True)
+load_dotenv(dotenv_path=dotenv_path, override=True)
 
 st.set_page_config(page_title="HarvestBridge Dashboard", page_icon="🌾", layout="wide")
 
@@ -66,6 +70,8 @@ col1, col2 = st.columns([1.1, 1.2])
 
 location_name, location_coordinates, weather_condition = get_mock_location_and_weather(country, crop)
 backend_url = os.getenv("HARVESTBRIDGE_BACKEND_URL", "").strip()
+if not backend_url:
+    backend_url = st.secrets.get("HARVESTBRIDGE_BACKEND_URL", "").strip() if hasattr(st, "secrets") else ""
 backend_config_warning = None
 if not backend_url:
     backend_url = "http://127.0.0.1:8001"
